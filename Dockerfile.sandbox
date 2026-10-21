@@ -1,0 +1,22 @@
+
+FROM python:3.10-slim
+
+WORKDIR /workspace
+
+# Install benchmark testing dependency
+RUN python -m pip install --no-cache-dir pytest==9.1.1
+
+# Copy evaluation runner and benchmarks
+COPY --chown=10001:10001 app/__init__.py app/evaluator.py ./app/
+COPY --chown=10001:10001 benchmarks/ ./benchmarks/
+
+# Create writable reports directory
+RUN mkdir -p reports && chown 10001:10001 reports
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTEST_ADDOPTS="-p no:cacheprovider"
+
+# Execute as a non-root user
+USER 10001:10001
+
+CMD ["python", "-m", "app.evaluator"]
