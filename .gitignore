@@ -1,0 +1,21 @@
+
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Pytest cache
+.pytest_cache/
+
+# Environment variables and API keys
+.env
+.env.*
+
+# Generated evaluation reports
+reports/
+
+# Editor and system files
+.vscode/
+.DS_Store
