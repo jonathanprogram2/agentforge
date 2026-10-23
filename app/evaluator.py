@@ -1,5 +1,5 @@
 
-
+import argparse
 import json
 import subprocess
 import sys
@@ -9,20 +9,41 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 
-FAIL_TO_PASS = [
-    "test_ten_percent_discount",
-    "test_fifty_percent_discount",
-]
 
-PASS_TO_PASS = [
-    "test_zero_discount",
-    "test_zero_price",
-]
+# Benchmark registry
+BENCHMARKS = {
+    "pricing_case": {
+        "fail_to_pass": [
+            "test_ten_percent_discount",
+            "test_fifty_percent_discount",
+        ],
+        "pass_to_pass": [
+            "test_zero_discount",
+            "test_zero_price",
+        ],
+    },
+    "pagination_case": {
+        "fail_to_pass": [
+            "test_last_page",
+            "test_single_page",
+        ],
+        "pass_to_pass": [
+            "test_first_page",
+            "test_empty_items",
+        ],
+    },
+}
 
-def run_evaluation():
+def run_evaluation(benchmark_name="pricing_case"):
+    """Execute and score a selected benchmark."""
+
+    if benchmark_name not in BENCHMARKS:
+        raise ValueError(f"Unknown benchmark: {benchmark_name}")
+    
+    config = BENCHMARKS[benchmark_name]
     REPORTS.mkdir(exist_ok=True)
 
-    xml_path = REPORTS / "pricing_case.xml"
+    xml_path = REPORTS / f"{benchmark_name}.xml"
 
     if xml_path.exists():
         xml_path.unlink()
@@ -31,7 +52,7 @@ def run_evaluation():
         sys.executable,
         "-m",
         "pytest",
-        "benchmarks/pricing_case",
+        f"benchmarks/{benchmark_name}",
         "-q",
         f"--junitxml={xml_path}",
     ]
@@ -66,29 +87,32 @@ def run_evaluation():
 
         tests[name] = status
 
-    expected = FAIL_TO_PASS + PASS_TO_PASS
+    fail_to_pass = config["fail_to_pass"]
+    pass_to_pass = config["pass_to_pass"]
+
+    expected = fail_to_pass + pass_to_pass
     missing = set(expected) - set(tests)
 
     if missing:
         raise RuntimeError(f"Missing tests: {sorted(missing)}")
     
     summary = {
-        "benchmark": "pricing_case",
+        "benchmark": benchmark_name,
         "total": len(tests),
         "passed": sum(s == "passed" for s in tests.values()),
         "failed": sum(s == "failed" for s in tests.values()),
         "fail_to_pass": {
-            "passed": sum(tests[t] == "passed" for t in FAIL_TO_PASS),
-            "total": len(FAIL_TO_PASS),
+            "passed": sum(tests[t] == "passed" for t in fail_to_pass),
+            "total": len(fail_to_pass),
         },
         "pass_to_pass": {
-            "passed": sum(tests[t] == "passed" for t in PASS_TO_PASS),
-            "total": len(PASS_TO_PASS),
+            "passed": sum(tests[t] == "passed" for t in pass_to_pass),
+            "total": len(pass_to_pass),
         },
         "test_results": tests,
     }
 
-    output_path = REPORTS / "pricing_case_latest.json"
+    output_path = REPORTS / f"{benchmark_name}_latest.json"
     output_path.write_text(
         json.dumps(summary, indent=2),
         encoding="utf-8",
@@ -98,7 +122,20 @@ def run_evaluation():
     return summary
 
 if __name__ == "__main__":
-    run_evaluation()
+    parser = argparse.ArgumentParser(
+        description="AgentForge Benchmark Evaluator"
+    )
+
+    parser.add_argument(
+        "--benchmark",
+        choices=BENCHMARKS.keys(),
+        default="pricing_case",
+        help="Select the coding benchmark to evaluate",
+    )
+
+    args = parser.parse_args()
+
+    run_evaluation(args.benchmark)
     
 
 
