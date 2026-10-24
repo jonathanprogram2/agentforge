@@ -11,7 +11,11 @@ MODELS = {
     "openai/gpt-oss-120b": "GPT-OSS 120B",
 }
 
-BENCHMARKS = ["pricing_case", "pagination_case"]
+BENCHMARKS = [
+    "pricing_case", 
+    "pagination_case", 
+    "inventory_case",
+    ]
 
 
 def load_latest_runs():

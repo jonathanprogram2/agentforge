@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 
 
-# Benchmark registry
+# Benchmark dictionary
 BENCHMARKS = {
     "pricing_case": {
         "fail_to_pass": [
@@ -35,6 +35,20 @@ BENCHMARKS = {
         ],
         "source_file": "pagination.py",
         "entry_function": "paginate",
+    },
+    
+    "inventory_case": {
+        "source_file": "inventory.py",
+        "entry_function": "reconcile_inventory",
+        "fail_to_pass": [
+            "test_repeated_deductions",
+            "test_repeated_additions_new_sku",
+        ],
+        "pass_to_pass": [
+            "test_single_adjustment",
+            "test_floor_zero",
+            "test_original_unchanged",
+        ],
     },
 }
 
