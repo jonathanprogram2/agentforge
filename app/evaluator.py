@@ -21,6 +21,8 @@ BENCHMARKS = {
             "test_zero_discount",
             "test_zero_price",
         ],
+        "source_file": "pricing.py",
+        "entry_function": "discounted_price",
     },
     "pagination_case": {
         "fail_to_pass": [
@@ -31,6 +33,8 @@ BENCHMARKS = {
             "test_first_page",
             "test_empty_items",
         ],
+        "source_file": "pagination.py",
+        "entry_function": "paginate",
     },
 }
 
