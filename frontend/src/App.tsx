@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import ExperimentExplorer from "./ExperimentExplorer";
 import ModelAnalytics from "./ModelAnalytics";
+import ModelReliability from "./ModelReliability";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -153,6 +154,7 @@ function App() {
             </div>
           </section>
           <ModelAnalytics comparisons={comparisons} />
+          <ModelReliability />
           <ExperimentExplorer />
         </>
       )}

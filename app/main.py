@@ -106,3 +106,34 @@ def get_comparison():
             status_code=500,
             detail="Comparison report could not be read.",
         )
+
+
+@app.get("/api/reliability")
+def get_reliability():
+    """Return saved reliability reports for available benchmarks."""
+
+    results = []
+
+    for benchmark_name in BENCHMARKS:
+        path = REPORTS / f"{benchmark_name}_reliability_latest.json"
+
+        if not path.exists():
+            continue
+
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Could not read reliability report for {benchmark_name}",
+            ) from exc
+
+        if not isinstance(data, list):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Invalid reliability report for {benchmark_name}",
+            )
+
+        results.extend(data)
+
+    return results
