@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 from datetime import datetime, timezone
-from time import perf_counter
+from time import perf_counter, sleep
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -328,9 +328,25 @@ if __name__ == "__main__":
         default="openai/gpt-oss-20b",
     )
 
+    
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        choices=[1, 2, 3],
+        default=1,
+        help="Number of independent evaluation attempts",
+    )
+
     args = parser.parse_args()
 
-    run_agent(args.benchmark, args.model)
+    for trial in range(1, args.repeat + 1):
+        print(f"\n=== Trial {trial}/{args.repeat} ===")
+
+        run_agent(args.benchmark, args.model)
+
+        if trial < args.repeat:
+            print("Spacing out API requests...")
+            sleep(15)
 
 
 
