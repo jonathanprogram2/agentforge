@@ -8,3 +8,5 @@
 .env
 .env.*
 reports/
+frontend/node_modules/
+frontend/dist/

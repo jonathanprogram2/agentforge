@@ -19,3 +19,6 @@ reports/
 # Editor and system files
 .vscode/
 .DS_Store
+
+frontend/node_modules/
+frontend/dist/
