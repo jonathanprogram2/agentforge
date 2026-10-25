@@ -1,4 +1,3 @@
-
 import argparse
 import json
 import subprocess
@@ -8,7 +7,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
-
 
 # Benchmark dictionary
 BENCHMARKS = {
@@ -36,7 +34,6 @@ BENCHMARKS = {
         "source_file": "pagination.py",
         "entry_function": "paginate",
     },
-    
     "inventory_case": {
         "source_file": "inventory.py",
         "entry_function": "reconcile_inventory",
@@ -50,7 +47,6 @@ BENCHMARKS = {
             "test_original_unchanged",
         ],
     },
-    
     "workflow_case": {
         "source_file": "workflow.py",
         "entry_function": "resolve_workflow",
@@ -67,17 +63,22 @@ BENCHMARKS = {
     },
 }
 
-def run_evaluation(benchmark_name="pricing_case"):
-    """Execute and score a selected benchmark."""
 
+def run_evaluation(benchmark_name="pricing_case"):
+    """Execute and score exactly the registered tests for a benchmark."""
     if benchmark_name not in BENCHMARKS:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
-    
+
     config = BENCHMARKS[benchmark_name]
-    REPORTS.mkdir(exist_ok=True)
+    expected_fail = config["fail_to_pass"]
+    expected_pass = config["pass_to_pass"]
+    expected = expected_fail + expected_pass
 
+    if len(expected) != len(set(expected)):
+        raise RuntimeError("Duplicate test names in benchmark registry.")
+
+    REPORTS.mkdir(parents=True, exist_ok=True)
     xml_path = REPORTS / f"{benchmark_name}.xml"
-
     if xml_path.exists():
         xml_path.unlink()
 
@@ -102,12 +103,15 @@ def run_evaluation(benchmark_name="pricing_case"):
         raise RuntimeError(
             f"Benchmark execution error:\n{result.stdout}\n{result.stderr}"
         )
-    
+
     tree = ET.parse(xml_path)
     tests = {}
-
     for case in tree.findall(".//testcase"):
         name = case.get("name")
+        if not name:
+            raise RuntimeError("Test case missing a name in Pytest XML.")
+        if name in tests:
+            raise RuntimeError(f"Duplicate collected test name: {name}")
 
         if case.find("failure") is not None:
             status = "failed"
@@ -117,58 +121,52 @@ def run_evaluation(benchmark_name="pricing_case"):
             status = "skipped"
         else:
             status = "passed"
-
         tests[name] = status
 
-    fail_to_pass = config["fail_to_pass"]
-    pass_to_pass = config["pass_to_pass"]
-
-    expected = fail_to_pass + pass_to_pass
     missing = set(expected) - set(tests)
+    extra = set(tests) - set(expected)
+    if missing or extra:
+        raise RuntimeError(
+            f"Benchmark test mismatch; missing={sorted(missing)}, extra={sorted(extra)}"
+        )
 
-    if missing:
-        raise RuntimeError(f"Missing tests: {sorted(missing)}")
-    
+    if result.returncode != 0 and all(s == "passed" for s in tests.values()):
+        raise RuntimeError("Pytest returned failure despite all collected tests passing.")
+
     summary = {
         "benchmark": benchmark_name,
-        "total": len(tests),
+        "total": len(expected),
         "passed": sum(s == "passed" for s in tests.values()),
-        "failed": sum(s == "failed" for s in tests.values()),
+        # Count every non-passing outcome as unsuccessful, including skips and errors.
+        "failed": sum(s != "passed" for s in tests.values()),
+        "errors": sum(s == "error" for s in tests.values()),
+        "skipped": sum(s == "skipped" for s in tests.values()),
         "fail_to_pass": {
-            "passed": sum(tests[t] == "passed" for t in fail_to_pass),
-            "total": len(fail_to_pass),
+            "passed": sum(tests[t] == "passed" for t in expected_fail),
+            "total": len(expected_fail),
         },
         "pass_to_pass": {
-            "passed": sum(tests[t] == "passed" for t in pass_to_pass),
-            "total": len(pass_to_pass),
+            "passed": sum(tests[t] == "passed" for t in expected_pass),
+            "total": len(expected_pass),
         },
         "test_results": tests,
     }
 
     output_path = REPORTS / f"{benchmark_name}_latest.json"
-    output_path.write_text(
-        json.dumps(summary, indent=2),
-        encoding="utf-8",
-    )
-
+    output_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))
     return summary
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="AgentForge Benchmark Evaluator"
     )
-
     parser.add_argument(
         "--benchmark",
         choices=BENCHMARKS.keys(),
         default="pricing_case",
         help="Select the coding benchmark to evaluate",
     )
-
     args = parser.parse_args()
-
     run_evaluation(args.benchmark)
-    
-
-
