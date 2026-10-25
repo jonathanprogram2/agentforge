@@ -8,6 +8,14 @@ AgentForge gives an LLM three tools—`read_file`, `submit_patch`, and `run_test
 
 > **Project scope:** A portfolio and research prototype using four small, synthetic coding challenges. This is **not** SWE-bench, a production-grade security sandbox, or a statistically validated leaderboard.
 
+
+## Dashboard Preview
+
+![AgentForge — AI Coding Agent Evaluation Dashboard](docs/images/dashboard-overview.png)
+
+*AgentForge's main dashboard displays benchmark performance, model comparisons, token consumption, and recorded evaluation results.*
+
+
 ## What it does
 
 - **Iterative tool-calling agents:** inspect allowed source/tests, propose a patch, run tests, and refine a failed attempt.
@@ -43,6 +51,59 @@ flowchart TD
 ```
 
 For module responsibilities, scoring details, and security limitations, see [Architecture & Methodology](docs/ARCHITECTURE.md).
+
+
+## Platform Screenshots
+
+### 1. Multi-Model Performance Analytics
+
+![AgentForge Model Analytics](docs/images/model-analytics.png)
+
+Compare GPT-OSS 20B and GPT-OSS 120B across coding benchmarks using interactive charts. Examine token usage and execution latency to better understand differences in model behavior and efficiency.
+
+### 2. AI Agent Execution & Tool Trajectories
+
+![AgentForge Experiment Explorer](docs/images/experiment-explorer.png)
+
+Inspect recorded agent execution traces, including source-file inspection, code patch submissions, and Docker-based test execution. Explore how an agent iteratively responds to test feedback when a proposed fix does not initially pass.
+
+### 3. Model Reliability Analysis
+
+![AgentForge Model Reliability](docs/images/model-analysis.png)
+
+Analyze repeated agent trials using observed success rates, average token consumption, execution latency, and latency standard deviation. These statistics describe the recorded sample rather than establishing general model reliability.
+
+### 4. Held-Out Evaluation
+
+![AgentForge Held-Out Evaluation](docs/images/heldout-evaluation.png)
+
+Evaluate saved AI-generated inventory repairs against additional test cases excluded from the agent's normal tool interface. Compare public-test success with held-out evaluation results.
+
+### Additional Interactive Views
+
+<details>
+<summary>Expand to view more dashboard screenshots</summary>
+
+#### Model Analytics — Detailed Metrics
+
+![AgentForge Model Analytics Detail](docs/images/model-analytics1.png)
+
+Interactive chart inspection provides additional performance details for recorded benchmark experiments.
+
+#### Experiment Explorer — Benchmark Filtering
+
+![AgentForge Experiment Explorer Benchmark Filter](docs/images/experiment-explorer1.png)
+
+Filter recorded experiments by coding benchmark to investigate individual task results.
+
+#### Experiment Explorer — Model Filtering
+
+![AgentForge Experiment Explorer Model Filter](docs/images/experiment-explorer2.png)
+
+Filter experiments by model to compare execution histories and examine individual agent runs.
+
+</details>
+
 
 ## Benchmarks
 
@@ -187,10 +248,6 @@ agentforge/
 ├── requirements.txt
 └── reports/             # Locally generated; Git-ignored
 ```
-
-## Demo
-
-See [Demo Walkthrough](docs/DEMO.md) for a concise recording plan and reproducible commands. Add real dashboard screenshots and a demo-video link to this README once you've recorded them.
 
 ---
 
