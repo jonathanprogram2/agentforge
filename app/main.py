@@ -137,3 +137,50 @@ def get_reliability():
         results.extend(data)
 
     return results
+
+
+@app.get("/api/heldout")
+def get_heldout_results():
+    """Return recorded held-out evaluation summaries."""
+
+    results = []
+
+    for path in REPORTS.glob("*_heldout.json"):
+        try:
+            data = json.loads(
+                path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        if not isinstance(data, dict):
+            continue
+
+        evaluation = data.get("heldout_evaluation")
+
+        if not isinstance(evaluation, dict):
+            continue
+
+        if not all(
+            isinstance(data.get(field), str)
+            for field in ("run_id", "benchmark", "model")
+        ):
+            continue
+
+        results.append({
+            "run_id": data["run_id"],
+            "benchmark": data["benchmark"],
+            "model": data["model"],
+            "public_success": data.get("public_success"),
+            "heldout_success": evaluation.get("success"),
+            "passed": evaluation.get("passed"),
+            "total": evaluation.get("total"),
+            "failed": evaluation.get("failed"),
+        })
+
+    results.sort(
+        key=lambda item: item["run_id"],
+        reverse=True,
+    )
+
+    return results

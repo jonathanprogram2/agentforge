@@ -435,3 +435,49 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* Held-Out Evaluation */
+
+.heldout-panel {
+  margin-top: 30px;
+}
+
+.heldout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.heldout-card {
+  background: #0b1322;
+  border: 1px solid #26354c;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.heldout-card h3 {
+  margin: 0 0 8px;
+}
+
+.heldout-card p {
+  color: #94a3b8;
+  margin-bottom: 24px;
+}
+
+.heldout-card > strong {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+
+.heldout-status {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 750px) {
+  .heldout-grid {
+    grid-template-columns: 1fr;
+  }
+}

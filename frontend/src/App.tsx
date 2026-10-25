@@ -3,6 +3,7 @@ import "./App.css";
 import ExperimentExplorer from "./ExperimentExplorer";
 import ModelAnalytics from "./ModelAnalytics";
 import ModelReliability from "./ModelReliability";
+import HeldoutResults from "./HeldoutResults";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -155,6 +156,7 @@ function App() {
           </section>
           <ModelAnalytics comparisons={comparisons} />
           <ModelReliability />
+          <HeldoutResults />
           <ExperimentExplorer />
         </>
       )}
