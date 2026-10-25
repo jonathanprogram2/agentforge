@@ -50,6 +50,21 @@ BENCHMARKS = {
             "test_original_unchanged",
         ],
     },
+    
+    "workflow_case": {
+        "source_file": "workflow.py",
+        "entry_function": "resolve_workflow",
+        "fail_to_pass": [
+            "test_diamond_workflow",
+            "test_shared_dependency_three_branches",
+        ],
+        "pass_to_pass": [
+            "test_linear_workflow",
+            "test_independent_tasks",
+            "test_cycle_rejected",
+            "test_unknown_dependency_rejected",
+        ],
+    },
 }
 
 def run_evaluation(benchmark_name="pricing_case"):

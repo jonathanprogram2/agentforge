@@ -1,5 +1,3 @@
-
-
 import argparse
 import hashlib
 import json
@@ -9,7 +7,7 @@ from datetime import datetime, timezone
 from time import perf_counter, sleep
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from app.evaluator import BENCHMARKS, ROOT, REPORTS
 from app.sandbox import validate_patch, evaluate_patch
@@ -20,8 +18,10 @@ MODELS = [
     "openai/gpt-oss-20b",
     "openai/gpt-oss-120b",
 ]
+
 MAX_ROUNDS = 10
 MAX_EVALUATIONS = 3
+
 
 def create_tools(allowed_files):
     return [
@@ -72,6 +72,7 @@ def create_tools(allowed_files):
         },
     ]
 
+
 def run_agent(benchmark_name, model):
     config = BENCHMARKS[benchmark_name]
     source_file = config["source_file"]
@@ -83,7 +84,7 @@ def run_agent(benchmark_name, model):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is missing.")
-    
+
     client = OpenAI(
         api_key=api_key,
         base_url="https://api.groq.com/openai/v1",
@@ -126,14 +127,28 @@ def run_agent(benchmark_name, model):
     print(f"AgentForge: solving {benchmark_name}...")
 
     for round_number in range(1, MAX_ROUNDS + 1):
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            tool_choice="auto",
-            reasoning_effort="low",
-            max_completion_tokens=2000,
-        )
+        # Retry this LLM request if Groq temporarily rate-limits it.
+        for attempt in range(3):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="auto",
+                    reasoning_effort="low",
+                    max_completion_tokens=2000,
+                )
+                break
+            except RateLimitError:
+                if attempt == 2:
+                    raise
+
+                wait_seconds = 15 * (attempt + 1)
+                print(
+                    "Groq rate limit reached. "
+                    f"Retrying in {wait_seconds} seconds..."
+                )
+                sleep(wait_seconds)
 
         if response.usage:
             tokens_used += response.usage.total_tokens or 0
@@ -167,26 +182,18 @@ def run_agent(benchmark_name, model):
             print(f"Round {round_number}: {name}")
 
             try:
-                args = json.loads(
-                    call.function.arguments or "{}"
-                )
+                args = json.loads(call.function.arguments or "{}")
 
                 if name == "read_file":
                     filename = args["filename"]
 
                     if filename not in allowed_files:
                         raise ValueError("File not allowed.")
-                    
-                    path = (
-                        ROOT / "benchmarks"
-                        / benchmark_name / filename
-                    )
 
+                    path = ROOT / "benchmarks" / benchmark_name / filename
                     result = {
                         "filename": filename,
-                        "content": path.read_text(
-                            encoding="utf-8"
-                        ),
+                        "content": path.read_text(encoding="utf-8"),
                     }
 
                 elif name == "submit_patch":
@@ -204,14 +211,12 @@ def run_agent(benchmark_name, model):
                 elif name == "run_tests":
                     if candidate is None:
                         raise ValueError("Submit a patch first.")
-                    
+
                     if evaluations >= MAX_EVALUATIONS:
                         raise ValueError("Evaluation limit reached.")
-                    
+
                     evaluations += 1
-                    latest_result = evaluate_patch(
-                        benchmark_name, candidate
-                    )
+                    latest_result = evaluate_patch(benchmark_name, candidate)
 
                     success = (
                         latest_result["failed"] == 0
@@ -228,11 +233,13 @@ def run_agent(benchmark_name, model):
 
                 else:
                     raise ValueError("Unknown tool.")
-                
-            
+
             except (
-                ValueError, KeyError, TypeError,
-                RuntimeError, OSError, 
+                ValueError,
+                KeyError,
+                TypeError,
+                RuntimeError,
+                OSError,
                 subprocess.TimeoutExpired,
             ) as exc:
                 result = {"error": str(exc)}
@@ -249,13 +256,12 @@ def run_agent(benchmark_name, model):
                 if "content" in result:
                     event["result"] = {"read": True}
 
-            if name == "submit_patch" and candidate:
+            if name == "submit_patch" and result.get("accepted") and candidate:
                 event["patch_sha256"] = hashlib.sha256(
                     candidate.encode("utf-8")
                 ).hexdigest()
 
             trace.append(event)
-
             messages.append({
                 "role": "tool",
                 "tool_call_id": call.id,
@@ -266,10 +272,7 @@ def run_agent(benchmark_name, model):
             break
 
     duration = round(perf_counter() - start, 2)
-
-    run_id = datetime.now(timezone.utc).strftime(
-        "%Y%m%dT%H%M%S%fZ"
-    )
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
 
     history = REPORTS / "history"
     history.mkdir(parents=True, exist_ok=True)
@@ -293,11 +296,9 @@ def run_agent(benchmark_name, model):
     }
 
     report_json = json.dumps(report, indent=2)
-
     (history / f"{run_id}.json").write_text(
         report_json, encoding="utf-8"
     )
-
     (REPORTS / "multi_agent_latest.json").write_text(
         report_json, encoding="utf-8"
     )
@@ -311,12 +312,11 @@ def run_agent(benchmark_name, model):
         "duration_seconds": duration,
         "evaluation": latest_result,
     }, indent=2))
-
     print(f"\nExperiment saved: {run_id}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument(
         "--benchmark",
         choices=BENCHMARKS.keys(),
@@ -327,8 +327,6 @@ if __name__ == "__main__":
         choices=MODELS,
         default="openai/gpt-oss-20b",
     )
-
-    
     parser.add_argument(
         "--repeat",
         type=int,
@@ -336,18 +334,12 @@ if __name__ == "__main__":
         default=1,
         help="Number of independent evaluation attempts",
     )
-
     args = parser.parse_args()
 
     for trial in range(1, args.repeat + 1):
         print(f"\n=== Trial {trial}/{args.repeat} ===")
-
         run_agent(args.benchmark, args.model)
 
         if trial < args.repeat:
             print("Spacing out API requests...")
             sleep(15)
-
-
-
-

@@ -15,6 +15,7 @@ BENCHMARKS = [
     "pricing_case", 
     "pagination_case", 
     "inventory_case",
+    "workflow_case",
     ]
 
 

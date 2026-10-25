@@ -8,7 +8,7 @@ from pathlib import Path
 
 from app.evaluator import BENCHMARKS
 
-IMAGE = "agentforge-sandbox:v3"
+IMAGE = "agentforge-sandbox:public-v5"
 
 def validate_patch(benchmark_name: str, code: str):
     """Validate the candidate's basic structure."""
