@@ -44,6 +44,50 @@ def validate_patch(benchmark_name: str, code: str):
             f"Patch must define only {expected_function}."
         )
     
+    
+    # Defense-in-depth only, not a Python security sandbox.
+    forbidden_calls = {
+        "eval",
+        "exec",
+        "compile",
+        "open",
+        "__import__",
+        "globals",
+        "locals",
+        "vars",
+        "getattr",
+        "setattr",
+        "delattr",
+        "breakpoint",
+    }
+
+    for node in ast.walk(statements[0]):
+        if isinstance(
+            node,
+            (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal),
+        ):
+            raise ValueError(
+                "Imports and global scope modifications are not allowed."
+            )
+
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in forbidden_calls
+        ):
+            raise ValueError(
+                f"Restricted operation: {node.func.id}"
+            )
+
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr.startswith("__")
+        ):
+            raise ValueError(
+                "Dunder attribute access is not allowed."
+            )
+
+    
 def evaluate_patch(benchmark_name: str, code: str):
     """Run a candidate patch inside the Docker benchmark image."""
 

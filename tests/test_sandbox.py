@@ -39,3 +39,23 @@ def test_valid_patches(benchmark, code):
 def test_invalid_patches_are_rejected(code):
     with pytest.raises(ValueError):
         validate_patch("pricing_case", code)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "    import os\n    return price\n",
+        '    open("secret.txt")\n    return price\n',
+        '    exec("print(1)")\n    return price\n',
+        "    return globals()\n",
+        "    return price.__class__\n",
+    ],
+)
+def test_restricted_operations_are_rejected(body):
+    code = (
+        "def discounted_price(price, discount_pct):\n"
+        + body
+    )
+
+    with pytest.raises(ValueError):
+        validate_patch("pricing_case", code)
